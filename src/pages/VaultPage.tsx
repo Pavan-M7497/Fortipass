@@ -82,8 +82,9 @@ export default function VaultPage() {
   }
 
   const handleDelete = async (itemId: string) => {
+    if (!user) return
     if (!confirm('Delete this credential from your vault?')) return
-    await deleteVaultItem(itemId)
+    await deleteVaultItem(user.uid, itemId)
     toast.pushToast('Credential deleted.', 'info')
   }
 

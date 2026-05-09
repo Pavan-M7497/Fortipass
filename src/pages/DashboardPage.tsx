@@ -5,6 +5,7 @@ import { subscribeVault } from '../services/vault'
 import { getSecurityScore } from '../utils/password'
 import SecurityScoreRing from '../components/SecurityScoreRing'
 import { StrengthDistributionChart, StrengthSparkline } from '../components/DashboardCharts'
+import type { VaultItem } from '../types'
 
 const statVariants = {
   hidden: { opacity: 0, y: 16 },
@@ -17,7 +18,7 @@ const statVariants = {
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const [items, setItems] = useState([])
+  const [items, setItems] = useState<VaultItem[]>([])
 
   useEffect(() => {
     if (!user) return undefined

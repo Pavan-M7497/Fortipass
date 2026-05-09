@@ -1,46 +1,33 @@
-import { apiJson } from './api'
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, type User } from 'firebase/auth'
+import { auth } from '../firebase/firebase'
 import type { AuthUser } from '../types'
 
-const TOKEN_KEY = 'fortipass_token'
-
-export function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
-}
-
-export function setStoredToken(token: string | null): void {
-  if (token) localStorage.setItem(TOKEN_KEY, token)
-  else localStorage.removeItem(TOKEN_KEY)
+function mapUser(user: User): AuthUser {
+  return {
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName,
+  }
 }
 
 export async function registerUser(email: string, password: string, displayName: string): Promise<AuthUser> {
-  const data = await apiJson<{ access_token: string; user: AuthUser }>('/api/auth/signup', {
-    method: 'POST',
-    body: JSON.stringify({ email, password, display_name: displayName }),
-  })
-  setStoredToken(data.access_token)
-  return data.user
+  const credential = await createUserWithEmailAndPassword(auth, email, password)
+  if (credential.user && displayName) {
+    await updateProfile(credential.user, { displayName })
+  }
+  return mapUser(credential.user)
 }
 
 export async function loginUser(email: string, password: string): Promise<AuthUser> {
-  const data = await apiJson<{ access_token: string; user: AuthUser }>('/api/auth/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  })
-  setStoredToken(data.access_token)
-  return data.user
+  const credential = await signInWithEmailAndPassword(auth, email, password)
+  return mapUser(credential.user)
 }
 
-export function logoutUser(): void {
-  setStoredToken(null)
+export async function logoutUser(): Promise<void> {
+  await signOut(auth)
 }
 
 export async function fetchCurrentUser(): Promise<AuthUser | null> {
-  if (!getStoredToken()) return null
-  try {
-    const data = await apiJson<{ user: AuthUser }>('/api/auth/me', { method: 'GET' })
-    return data.user
-  } catch {
-    setStoredToken(null)
-    return null
-  }
+  const user = auth.currentUser
+  return user ? mapUser(user) : null
 }

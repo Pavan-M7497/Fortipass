@@ -1,70 +1,99 @@
-import { apiJson } from './api'
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  Timestamp,
+  updateDoc,
+  type DocumentData,
+} from 'firebase/firestore'
+import { db } from '../firebase/firebase'
 import type { VaultItem } from '../types'
 
-/**
- * Load all vault entries for the logged-in user (server decrypts with app encryption key).
- */
-export async function fetchVaultItems(): Promise<VaultItem[]> {
-  const data = await apiJson<{ items: VaultItem[] }>('/api/vault/items', { method: 'GET' })
-  return data.items
+function normalizeTimestamp(value: unknown): string | null {
+  if (!value) return null
+  if (value instanceof Timestamp) return value.toDate().toISOString()
+  if (typeof value === 'string') return value
+  return null
 }
 
-/**
- * Polls the vault periodically so the UI stays fresh without Firestore-style websockets.
- */
-export function subscribeVault(_userId: string, callback: (items: VaultItem[]) => void) {
-  let cancelled = false
-  const tick = async () => {
-    try {
-      const items = await fetchVaultItems()
-      if (!cancelled) callback(items)
-    } catch {
-      if (!cancelled) callback([])
-    }
+function mapDoc(id: string, owner: string, data: DocumentData): VaultItem {
+  return {
+    id,
+    owner,
+    website: data.website || '',
+    username: data.username || '',
+    password: data.password || '',
+    notes: data.notes || '',
+    compromised: data.compromised ?? false,
+    strength: typeof data.strength === 'number' ? data.strength : 0,
+    createdAt: normalizeTimestamp(data.createdAt),
+    updatedAt: normalizeTimestamp(data.updatedAt),
   }
-  void tick()
-  const id = window.setInterval(tick, 12_000)
-  return () => {
-    cancelled = true
-    window.clearInterval(id)
-  }
+}
+
+const vaultCollection = (userId: string) => collection(db, 'users', userId, 'vault')
+
+export async function fetchVaultItems(userId: string): Promise<VaultItem[]> {
+  const vaultQuery = query(vaultCollection(userId), orderBy('updatedAt', 'desc'))
+  const snapshot = await getDocs(vaultQuery)
+  return snapshot.docs.map((docSnapshot) => mapDoc(docSnapshot.id, userId, docSnapshot.data()))
+}
+
+export function subscribeVault(userId: string, callback: (items: VaultItem[]) => void) {
+  const vaultQuery = query(vaultCollection(userId), orderBy('updatedAt', 'desc'))
+  const unsubscribe = onSnapshot(
+    vaultQuery,
+    (snapshot) => {
+      callback(snapshot.docs.map((docSnapshot) => mapDoc(docSnapshot.id, userId, docSnapshot.data())))
+    },
+    () => {
+      callback([])
+    },
+  )
+  return unsubscribe
 }
 
 export async function createVaultItem(
-  _userId: string,
+  userId: string,
   item: Omit<VaultItem, 'id' | 'owner' | 'createdAt' | 'updatedAt'>,
 ) {
-  await apiJson('/api/vault/items', {
-    method: 'POST',
-    body: JSON.stringify({
-      website: item.website,
-      username: item.username,
-      password: item.password,
-      notes: item.notes,
-      compromised: item.compromised,
-      strength: item.strength,
-    }),
+  await addDoc(vaultCollection(userId), {
+    owner: userId,
+    website: item.website,
+    username: item.username,
+    password: item.password,
+    notes: item.notes,
+    compromised: item.compromised,
+    strength: item.strength,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   })
 }
 
 export async function updateVaultItem(
-  _userId: string,
+  userId: string,
   itemId: string,
   item: Omit<VaultItem, 'id' | 'owner' | 'createdAt' | 'updatedAt'>,
 ) {
-  await apiJson(`/api/vault/items/${itemId}`, {
-    method: 'PUT',
-    body: JSON.stringify({
-      website: item.website,
-      username: item.username,
-      password: item.password,
-      notes: item.notes,
-      compromised: item.compromised,
-      strength: item.strength,
-    }),
+  const itemRef = doc(db, 'users', userId, 'vault', itemId)
+  await updateDoc(itemRef, {
+    website: item.website,
+    username: item.username,
+    password: item.password,
+    notes: item.notes,
+    compromised: item.compromised,
+    strength: item.strength,
+    updatedAt: serverTimestamp(),
   })
 }
 
-export async function deleteVaultItem(itemId: string) {
-  await apiJson(`/api/vault/items/${itemId}`, { method: 'DELETE' })
+export async function deleteVaultItem(userId: string, itemId: string) {
+  const itemRef = doc(db, 'users', userId, 'vault', itemId)
+  await deleteDoc(itemRef)
 }
