@@ -1,0 +1,9 @@
+# FortiPass — Flask REST API
+flask==3.0.3
+flask-cors==4.0.1
+flask-limiter==3.8.0
+PyJWT==2.8.0
+bcrypt==4.1.3
+cryptography==42.0.7
+python-dotenv==1.0.1
+email-validator==2.1.1
