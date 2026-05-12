@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ShieldCheck, Mail, KeyRound, ArrowRight, User } from "lucide-react";
 import Link from "next/link";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, firebaseErrorMessage } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { deriveKeyFromPassword, generateRandomBytes, arrayBufferToBase64 } from "@/lib/crypto";
 import { doc, setDoc } from "firebase/firestore";
@@ -30,6 +30,10 @@ export default function SignupPage() {
     }
 
     try {
+      if (!auth || !db) {
+        throw new Error(firebaseErrorMessage || "Firebase is not configured.");
+      }
+
       // 1. Authenticate with Firebase
       const userCredential = await createUserWithEmailAndPassword(auth, email, masterPassword);
       const user = userCredential.user;
@@ -57,8 +61,9 @@ export default function SignupPage() {
       
       // 5. Redirect to dashboard
       window.location.href = "/dashboard";
-    } catch (err: any) {
-      setError(err.message || "Failed to create account");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to create account";
+      setError(message);
     } finally {
       setIsLoading(false);
     }

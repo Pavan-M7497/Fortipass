@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { Auth, getAuth } from "firebase/auth";
+import { Firestore, getFirestore } from "firebase/firestore";
+import { FirebaseStorage, getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -16,17 +16,30 @@ const missingFirebaseKeys = Object.entries(firebaseConfig)
   .filter(([, value]) => !value)
   .map(([key]) => key);
 
+let firebaseInitError: string | null = null;
+
 if (missingFirebaseKeys.length > 0) {
-  throw new Error(
+  firebaseInitError =
     `Missing Firebase env vars: ${missingFirebaseKeys.join(", ")}. ` +
-      "Set them in .env.local (for local) and Vercel Project Settings (for deploys) using NEXT_PUBLIC_FIREBASE_* names."
-  );
+    "Set them in .env.local (for local) and Vercel Project Settings (for deploys) using NEXT_PUBLIC_FIREBASE_* names.";
 }
 
 // Initialize Firebase securely to avoid re-initialization errors in Next.js HMR
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+let app = null;
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+if (!firebaseInitError) {
+  try {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+  } catch (error) {
+    firebaseInitError =
+      error instanceof Error ? error.message : "Unknown Firebase initialization error";
+  }
+}
+
+export const auth: Auth | null = app ? getAuth(app) : null;
+export const db: Firestore | null = app ? getFirestore(app) : null;
+export const storage: FirebaseStorage | null = app ? getStorage(app) : null;
+
+export const isFirebaseConfigured = !firebaseInitError && !!app;
+export const firebaseErrorMessage = firebaseInitError;
 export default app;

@@ -5,10 +5,9 @@ import { motion } from "framer-motion";
 import { Lock, Mail, KeyRound, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
+import { auth, firebaseErrorMessage } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
-import { deriveKeyFromPassword, generateRandomBytes, arrayBufferToBase64 } from "@/lib/crypto";
-import { doc, setDoc } from "firebase/firestore";
+import { deriveKeyFromPassword } from "@/lib/crypto";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -23,8 +22,12 @@ export default function LoginPage() {
     setError("");
 
     try {
+      if (!auth) {
+        throw new Error(firebaseErrorMessage || "Firebase authentication is not configured.");
+      }
+
       // 1. Authenticate with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, masterPassword);
+      await signInWithEmailAndPassword(auth, email, masterPassword);
       
       // 2. Fetch user's salt from Firestore (simulated here for UI phase)
       // In a real flow, we query users/{uid} to get the 'saltBase64'
@@ -36,8 +39,9 @@ export default function LoginPage() {
       
       // 4. Redirect to dashboard (to be built)
       window.location.href = "/dashboard";
-    } catch (err: any) {
-      setError(err.message || "Failed to authenticate");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to authenticate";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +119,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-8 text-sm text-center text-text-secondary">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/signup" className="text-accent hover:underline">
             Create your vault
           </Link>

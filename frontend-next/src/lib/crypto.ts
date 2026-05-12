@@ -16,21 +16,24 @@ const ITERATIONS = 100000; // High iteration count to resist brute-force
  * @param length Length in bytes (16 for salt, 12 for IV)
  */
 export function generateRandomBytes(length: number): Uint8Array {
-  return crypto.getRandomValues(new Uint8Array(length));
+  const buffer = new ArrayBuffer(length);
+  const bytes = new Uint8Array(buffer);
+  crypto.getRandomValues(bytes);
+  return bytes;
 }
 
 /**
  * Converts a string to an ArrayBuffer.
  */
 function stringToArrayBuffer(str: string): ArrayBuffer {
-  return new TextEncoder().encode(str);
+  return new TextEncoder().encode(str).buffer as ArrayBuffer;
 }
 
 /**
  * Converts an ArrayBuffer to a Base64 string.
  */
-export function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
+export function arrayBufferToBase64(buffer: ArrayBuffer | Uint8Array): string {
+  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
   let binary = "";
   for (let i = 0; i < bytes.byteLength; i++) {
     binary += String.fromCharCode(bytes[i]);
@@ -86,14 +89,15 @@ export async function deriveKeyFromPassword(masterPassword: string, saltBase64: 
  * @param key The derived AES CryptoKey.
  * @returns { ciphertext: string, iv: string } Base64 encoded result.
  */
-export async function encryptData(data: Record<string, any>, key: CryptoKey): Promise<{ ciphertext: string, iv: string }> {
+export async function encryptData(data: Record<string, unknown>, key: CryptoKey): Promise<{ ciphertext: string, iv: string }> {
   const iv = generateRandomBytes(12); // 96-bit IV recommended for AES-GCM
+  const ivForCrypto = iv as unknown as Uint8Array<ArrayBuffer>;
   const encodedData = stringToArrayBuffer(JSON.stringify(data));
 
   const encryptedBuffer = await crypto.subtle.encrypt(
     {
       name: ENCRYPTION_ALGO,
-      iv: iv,
+      iv: ivForCrypto,
     },
     key,
     encodedData
