@@ -36,6 +36,10 @@ if (!firebaseInitError) {
   }
 }
 
+if (firebaseInitError && process.env.NODE_ENV !== "production") {
+  console.warn("[FortiPass] Firebase disabled:", firebaseInitError);
+}
+
 export const auth: Auth | null = app ? getAuth(app) : null;
 export const db: Firestore | null = app ? getFirestore(app) : null;
 export const storage: FirebaseStorage | null = app ? getStorage(app) : null;
