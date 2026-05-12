@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/* ── Design tokens ──────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --background: #0a0f1e;
+  --surface: #111827;
+  --surface-hover: #1a2338;
+  --surface-border: rgba(255, 255, 255, 0.08);
+
+  /* Text */
+  --foreground: #f1f5f9;
+  --text-secondary: #94a3b8;
+
+  /* Accent */
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+
+  /* Shadows / glows */
+  --shadow-glow-cyan: 0 0 40px rgba(59, 130, 246, 0.25);
+
+  /* Font */
+  --font-display: "Inter", "Outfit", system-ui, sans-serif;
+}
+
+/* ── Global resets ──────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Utility classes used by pages ─────────────────────────── */
+
+/* Glass card panel */
+.glass-panel {
+  background: rgba(17, 24, 39, 0.75);
+  border: 1px solid var(--surface-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+/* Text colours */
+.text-accent { color: var(--accent); }
+.text-foreground { color: var(--foreground); }
+.text-text-secondary { color: var(--text-secondary); }
+
+/* Background colours */
+.bg-background { background: var(--background); }
+.bg-surface { background: var(--surface); }
+.bg-surface-hover { background: var(--surface-hover); }
+
+/* Borders */
+.border-surface-border { border-color: var(--surface-border); }
+.border-accent { border-color: var(--accent); }
+
+/* Accent button */
+.bg-accent { background: var(--accent); }
+.hover\:bg-accent-hover:hover { background: var(--accent-hover); }
+
+/* Selection */
+::selection {
+  background: rgba(59, 130, 246, 0.3);
+}
+
+/* Focus ring */
+.focus\:ring-accent:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
