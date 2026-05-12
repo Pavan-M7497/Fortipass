@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Mail, KeyRound, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { deriveKeyFromPassword, generateRandomBytes, arrayBufferToBase64 } from "@/lib/crypto";
